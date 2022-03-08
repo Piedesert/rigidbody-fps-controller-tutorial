@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class WallRun : MonoBehaviour
 {
@@ -24,6 +22,8 @@ public class WallRun : MonoBehaviour
     [SerializeField] private float camTiltTime;
 
     public float tilt { get; private set; }
+
+    public bool isWallRunning;
 
     private bool wallLeft = false;
     private bool wallRight = false;
@@ -57,21 +57,25 @@ public class WallRun : MonoBehaviour
         {
             if (wallLeft)
             {
+                isWallRunning = true;
                 StartWallRun();
                 Debug.Log("wall running on the left");
             }
             else if (wallRight)
             {
+                isWallRunning = true;
                 StartWallRun();
                 Debug.Log("wall running on the right");
             }
             else
             {
+                isWallRunning = false;
                 StopWallRun();
             }
         }
         else
         {
+            isWallRunning = false;
             StopWallRun();
         }
     }
@@ -88,22 +92,21 @@ public class WallRun : MonoBehaviour
             tilt = Mathf.Lerp(tilt, -camTilt, camTiltTime * Time.deltaTime);
         else if (wallRight)
             tilt = Mathf.Lerp(tilt, camTilt, camTiltTime * Time.deltaTime);
+    }
 
-
-        if (Input.GetKeyDown(KeyCode.Space))
+    public void WallJump()
+    {
+        if (wallLeft)
         {
-            if (wallLeft)
-            {
-                Vector3 wallRunJumpDirection = transform.up + leftWallHit.normal;
-                rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-                rb.AddForce(wallRunJumpDirection * wallRunJumpForce * 100, ForceMode.Force);
-            }
-            else if (wallRight)
-            {
-                Vector3 wallRunJumpDirection = transform.up + rightWallHit.normal;
-                rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z); 
-                rb.AddForce(wallRunJumpDirection * wallRunJumpForce * 100, ForceMode.Force);
-            }
+            Vector3 wallRunJumpDirection = transform.up + leftWallHit.normal;
+            rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+            rb.AddForce(wallRunJumpDirection * wallRunJumpForce * 100, ForceMode.Force);
+        }
+        else if (wallRight)
+        {
+            Vector3 wallRunJumpDirection = transform.up + rightWallHit.normal;
+            rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+            rb.AddForce(wallRunJumpDirection * wallRunJumpForce * 100, ForceMode.Force);
         }
     }
 

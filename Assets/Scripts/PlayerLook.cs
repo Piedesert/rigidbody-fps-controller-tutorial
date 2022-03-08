@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PlayerLook : MonoBehaviour
 {
@@ -27,17 +25,21 @@ public class PlayerLook : MonoBehaviour
         Cursor.visible = false;
     }
 
-    private void Update()
+    // Start is called before the first frame update
+    public void ProcessLook(Vector2 input)
     {
-        mouseX = Input.GetAxisRaw("Mouse X");
-        mouseY = Input.GetAxisRaw("Mouse Y");
-         
+        mouseX = input.x;
+        mouseY = input.y;
+
+        //calculate camera rotation for looking up and down
         yRotation += mouseX * sensX * multiplier;
         xRotation -= mouseY * sensY * multiplier;
 
         xRotation = Mathf.Clamp(xRotation, -90f, 90f);
 
+        //apply this to our camera transform
         cam.transform.rotation = Quaternion.Euler(xRotation, yRotation, wallRun.tilt);
+        //rotation player to look left and right
         orientation.transform.rotation = Quaternion.Euler(0, yRotation, 0);
     }
 }

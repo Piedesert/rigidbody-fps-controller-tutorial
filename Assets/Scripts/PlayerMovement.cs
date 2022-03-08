@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -15,22 +13,26 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Sprinting")]
     [SerializeField] float walkSpeed = 4f;
+    [SerializeField] float crouchedSpeed = 2f;
     [SerializeField] float sprintSpeed = 6f;
     [SerializeField] float acceleration = 10f;
 
     [Header("Jumping")]
     public float jumpForce = 5f;
+    
+    [Header("Wall Running/Jumping")]
+    [SerializeField] WallRun wallRun;
 
-    [Header("Keybinds")]
+    /*[Header("Keybinds")]
     [SerializeField] KeyCode jumpKey = KeyCode.Space;
-    [SerializeField] KeyCode sprintKey = KeyCode.LeftShift;
+    [SerializeField] KeyCode sprintKey = KeyCode.LeftShift;*/
 
     [Header("Drag")]
     [SerializeField] float groundDrag = 6f;
     [SerializeField] float airDrag = 2f;
 
-    float horizontalMovement;
-    float verticalMovement;
+    //float horizontalMovement;
+    //float verticalMovement;
 
     [Header("Ground Detection")]
     [SerializeField] Transform groundCheck;
@@ -44,6 +46,10 @@ public class PlayerMovement : MonoBehaviour
     Rigidbody rb;
 
     RaycastHit slopeHit;
+
+    protected float crouchTimer;
+    private bool lerpCrouch;
+    private bool isCrouching;
 
     private bool OnSlope()
     {
@@ -70,39 +76,68 @@ public class PlayerMovement : MonoBehaviour
     private void Update()
     {
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
-
-        MyInput();
-        ControlDrag();
-        ControlSpeed();
-
-        if (Input.GetKeyDown(jumpKey) && isGrounded)
-        {
-            Jump();
-        }
-
         slopeMoveDirection = Vector3.ProjectOnPlane(moveDirection, slopeHit.normal);
+
+        if (lerpCrouch)
+        {
+            crouchTimer += Time.fixedDeltaTime;
+            float p = crouchTimer / 1;
+            p *= p;
+            if (isCrouching)
+            {
+                playerHeight = Mathf.Lerp(playerHeight, 1, p);
+                moveSpeed = Mathf.Lerp(moveSpeed, crouchedSpeed, acceleration * Time.deltaTime);
+            }
+            else
+            {
+                playerHeight = Mathf.Lerp(playerHeight, 2, p);
+                moveSpeed = Mathf.Lerp(moveSpeed, walkSpeed, acceleration * Time.deltaTime);
+            }
+
+            if (p > 1)
+            {
+                lerpCrouch = false;
+                crouchTimer = 0f;
+            }
+        }
     }
 
-    void MyInput()
+    public void Jump()
     {
-        horizontalMovement = Input.GetAxisRaw("Horizontal");
-        verticalMovement = Input.GetAxisRaw("Vertical");
-
-        moveDirection = orientation.forward * verticalMovement + orientation.right * horizontalMovement;
-    }
-
-    void Jump()
-    {
-        if (isGrounded)
+        if (isGrounded && !wallRun.isWallRunning)
         {
             rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
             rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
         }
+        else if (wallRun.isWallRunning)
+        {
+            wallRun.WallJump();
+        }
     }
 
-    void ControlSpeed()
+    public void Crouch()
     {
-        if (Input.GetKey(sprintKey) && isGrounded)
+        /*if (isSprinting)
+        {
+            //Perform a slide
+        }*/
+
+        isCrouching = !isCrouching;
+        crouchTimer = 0;
+        lerpCrouch = true;
+    }
+
+    public void Sprint()
+    {
+        if (isGrounded && !isCrouching)
+        {
+            ControlSpeed(true);
+        }
+    }
+
+    void ControlSpeed(bool isSprinting)
+    {
+        if (isGrounded && isSprinting)
         {
             moveSpeed = Mathf.Lerp(moveSpeed, sprintSpeed, acceleration * Time.deltaTime);
         }
@@ -124,13 +159,15 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    private void FixedUpdate()
+    //receive the inputs for our InputManger.cs and apply them to our character controller.
+    public void ProcessMove(Vector2 input)
     {
-        MovePlayer();
-    }
+        moveDirection = Vector3.zero;
+        moveDirection.x = input.x;
+        moveDirection.z = input.y;
 
-    void MovePlayer()
-    {
+        moveDirection = orientation.forward * moveDirection.z + orientation.right * moveDirection.x;
+
         if (isGrounded && !OnSlope())
         {
             rb.AddForce(moveDirection.normalized * moveSpeed * movementMultiplier, ForceMode.Acceleration);
@@ -143,5 +180,7 @@ public class PlayerMovement : MonoBehaviour
         {
             rb.AddForce(moveDirection.normalized * moveSpeed * movementMultiplier * airMultiplier, ForceMode.Acceleration);
         }
+
+        ControlDrag();
     }
 }
